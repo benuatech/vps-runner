@@ -6,15 +6,21 @@ on:
 jobs:
   remote-opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 720
 
     steps:
 
+      # ==========================================
+      # 1. INSTALL DEPENDENCIES
+      # ==========================================
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y curl git tmux
 
+      # ==========================================
+      # 2. INSTALL OPENCODE
+      # ==========================================
       - name: Install OpenCode
         run: |
           curl -fsSL https://opencode.ai/install | bash
@@ -24,26 +30,45 @@ jobs:
 
           opencode --version
 
-      - name: Set runner SSH password
+      # ==========================================
+      # 3. PREPARE SSH
+      # ==========================================
+      - name: Prepare SSH
         run: |
-          echo "runner:000000" | sudo chpasswd
+          sudo mkdir -p /run/sshd
 
+          # Pastikan user runner memiliki shell
+          sudo usermod -s /bin/bash runner
+
+          # SSH hanya menggunakan key, tanpa password
+          sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+          sudo sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+
+      # ==========================================
+      # 4. START SSH + CLOUDFLARE TUNNEL
+      # ==========================================
       - name: Start SSH access
         uses: valeriangalliat/action-sshd-cloudflared@v4
 
+      # ==========================================
+      # 5. KEEP RUNNER ALIVE
+      # ==========================================
       - name: Keep runner alive
         run: |
           echo ""
-          echo "======================================"
-          echo " REMOTE OPENCODE RUNNER READY"
-          echo "======================================"
+          echo "=============================================="
+          echo "       REMOTE OPENCODE RUNNER READY"
+          echo "=============================================="
           echo ""
-          echo "SSH masuk sebagai: runner"
+          echo "Server : Ubuntu GitHub Actions"
+          echo "Masa   : 12 JAM"
           echo ""
-          echo "Setelah masuk:"
+          echo "Setelah SSH masuk:"
+          echo ""
           echo "  opencode"
           echo ""
-          echo "======================================"
+          echo "=============================================="
+          echo ""
 
           while true; do
             sleep 60
